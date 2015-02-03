@@ -1,0 +1,14 @@
+{
+    "name": "TestProject",
+    "version": "0.0.0",
+    "description": "TestProject",
+    "main": "server.js",
+    "author": {
+        "name": "Honza",
+        "email": ""
+    },
+    "dependencies": {
+        "restify": "^2.8.5",
+        "node-sqlserver-unofficial": "^1.4.0"
+    }
+}
