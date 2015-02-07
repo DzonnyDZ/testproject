@@ -6,7 +6,7 @@ var passport = require("passport");
 var Bearer = require("passport-http-bearer");
 var azure = require('azure-storage');
 var guid = require("guid");
-var pauseStream = require('pause-stream');
+var fs = require("fs");
 
 var firebaseRef = new firebase("https://radiant-heat-2598.firebaseio.com/");
 var blobSvc = azure.createBlobService("chorchojstorage", "+jvJAd+vYk/fPP7ivBZ3k2RpInTv//ANBrXOTFSt262kNrSK6dkBZ9Gj5UZUPO74ccmn//W3A0CyMSef9ToV6A==");
@@ -131,26 +131,32 @@ function uploadPhoto(req, res, next) {
     var contactId = req.query.contactId;
     if (!contactId) {
         res.send(400, { type: "IncompleteData", message: "Contact id missing." });
-    } else if (!req.fileData || req.fileData.length < 1) {
-        res.send(400, { type: "IncompleteData", message: "File not uploaded." });
-    } else if (req.fileData.lenght > 1) {
-        res.send(400, { type: "InvalidData", message: "Too many files" });
     } else {
-        blobSvc.createContainerIfNotExists('blob', { publicAccessLevel: "blob" }, function (error, result, response) {
-            if (error) {
-                res.send(500, null);
-            } else {
-                var part = req.fileData[0].part;
-                var ps = pauseStream();
-                part.pipe(ps); //because part has bug - does not support pause(), required by Azure
-                blobSvc.createPageBlobFromStream("blob", contactId, ps, 0, {}, function (error, result, response) {
-                    if (error)
-                        res.send(500, null);
-                    else
-                        res.send(201, null);
-                });
+        var files = new Array();
+        for (var i in req.files)
+            files.push(req.files[i]);
+        if (files.length < 1) {
+            res.send(400, { type: "IncompleteData", message: "File not uploaded." });
+        } else if (files.lenght > 1) {
+            res.send(400, { type: "InvalidData", message: "Too many files" });
+            for (var i = 0; i < files.length ; i++) { 
+                fs.unlink(files[i].path);
             }
-        });
+        } else {
+            blobSvc.createContainerIfNotExists('container', { publicAccessLevel: "blob" }, function (error, result, response) {
+                if (error) {
+                    res.send(500, null);
+                } else {
+                    blobSvc.createBlockBlobFromLocalFile("container", contactId, files[0].path, function (error, result, response) {
+                        fs.unlink(files[0].path);
+                        if (error)
+                            res.send(500, null);
+                        else
+                            res.send(201, null);
+                    });
+                }
+            });
+        }
     }
     next();
 }
@@ -169,14 +175,7 @@ passport.use(new Bearer(
 
 server.use(restify.acceptParser(server.acceptable));
 server.use(restify.jsonp());
-server.use(restify.bodyParser({
-    mapParams: false,
-    multipartFileHandler: function (part, req) {
-        if (!(req.fileData instanceof Array))
-            req.fileData = new Array();
-        req.fileData.push({ fileName: part.filename, mime: part.mime, name: part.name, part: part });
-    }
-}));
+server.use(restify.bodyParser({ mapParams: false }));
 server.post('/accounts', createAccount);
 server.get('/access_token', getAccessToken);
 server.post("/contacts", passport.authenticate("bearer", { session: false }), createContact);
