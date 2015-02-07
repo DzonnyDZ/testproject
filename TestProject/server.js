@@ -6,7 +6,6 @@ var firebase = require("firebase");
 var passport = require("passport");
 var Bearer = require("passport-http-bearer");
 var azure = require('azure-storage');
-var guid = require("guid");
 var fs = require("fs");
 
 //Setup
@@ -122,7 +121,7 @@ function createContact(req, res, next) {
             if (err) {
                 res.send(500, null);
             } else {
-                res.send(201, { id: pushed.name() }); //Return unique ID to client - it may be useful for him
+                res.send(201, { id: pushed.key() }); //Return unique ID to client - it may be useful for him
             }
         });
     }
