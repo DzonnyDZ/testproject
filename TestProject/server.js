@@ -1,4 +1,5 @@
-﻿var restify = require('restify');
+﻿//Requires
+var restify = require('restify');
 var sql = require('mssql');
 var jwt = require("jwt-simple");
 var firebase = require("firebase");
@@ -8,34 +9,37 @@ var azure = require('azure-storage');
 var guid = require("guid");
 var fs = require("fs");
 
-var firebaseRef = new firebase("https://radiant-heat-2598.firebaseio.com/");
-var blobSvc = azure.createBlobService("chorchojstorage", "+jvJAd+vYk/fPP7ivBZ3k2RpInTv//ANBrXOTFSt262kNrSK6dkBZ9Gj5UZUPO74ccmn//W3A0CyMSef9ToV6A==");
-
-var config = {
-    server: "localhost",
-    database: "STRV_test",
-    user: "xxx",
-    password: "xxx"
-};
-var secret = "wfdecerutejhsdgffg8754*/*/*:-)";
-
+//Setup
+var firebaseRef = new firebase("https://radiant-heat-2598.firebaseio.com/"); //Path to firebase
+var blobSvc = azure.createBlobService("chorchojstorage", "+jvJAd+vYk/fPP7ivBZ3k2RpInTv//ANBrXOTFSt262kNrSK6dkBZ9Gj5UZUPO74ccmn//W3A0CyMSef9ToV6A=="); //Connection to Azure BLOB storage
 var server = restify.createServer();
 
+var config = { //MS SQL server setup
+    server: "localhost", //Replace with server name (mssql npm package does not support named instances :-( )
+    database: "STRV_test", //Replace with database name
+    user: "xxx", //Replace with actual user name (this is not censored, I really use xxx :-) )
+    password: "xxx" //Replace with actual password (this is not censored, I really use xxx :-) )
+    //Integrated security is not supported by mssql npm package :-(
+};
+var secret = "wfdecerutejhsdgffg8754*/*/*:-)"; //Used to generate access tokens
+
+//Handlers
 function createAccount(req, res, next) {
     res.contentType = "json";
     var email = req.body.email;
     var password = req.body.password;
+    //Validation
     if (!email || !password) {
         res.send(400, { type: "IncompleteData", message: "Email or password missing." });
     } else {
-        var conn = new sql.Connection(config, function (err) {
+        var conn = new sql.Connection(config, function (err) { //Connect to SQL server
             if (err) {
                 res.send(500, null);
                 return;
             }
             var ps = new sql.PreparedStatement(conn);
             ps.input("email", sql.NVarChar(100));
-            ps.prepare("SELECT COUNT(*) AS count FROM dbo.[User] WHERE Email = @email;", function (err) {
+            ps.prepare("SELECT COUNT(*) AS count FROM dbo.[User] WHERE Email = @email;", function (err) { //Verify if account already exists
                 if (err) {
                     res.send(500, null);
                     return;
@@ -45,12 +49,12 @@ function createAccount(req, res, next) {
                         res.send(500, null);
                         return;
                     }
-                    if (r[0].count > 0) res.send(400, { type: "EmailExists", message: "Specified e-mail address is already registered." });
+                    if (r[0].count > 0) res.send(400, { type: "EmailExists", message: "Specified e-mail address is already registered." }); //Do not create duplicate accounts
                     ps.unprepare();
                     ps = new sql.PreparedStatement(conn);
                     ps.input("email", sql.NVarChar(100));
                     ps.input("password", sql.NVarChar(100));
-                    ps.prepare("INSERT INTO dbo.[User] (Email, [Password]) VALUES (@email, HASHBYTES('MD5', @password));", function (err) {
+                    ps.prepare("INSERT INTO dbo.[User] (Email, [Password]) VALUES (@email, HASHBYTES('MD5', @password));", function (err) { //Create the account
                         if (err) {
                             res.send(500, null);
                             return;
@@ -84,7 +88,7 @@ function getAccessToken(req, res, next) {
         var ps = new sql.PreparedStatement(conn);
         ps.input("email", sql.NVarChar(100));
         ps.input("password", sql.NVarChar(100));
-        ps.prepare("SELECT COUNT(*) AS count FROM dbo.[User] WHERE Email = @email AND password = HASHBYTES('MD5', @password);", function (err) {
+        ps.prepare("SELECT COUNT(*) AS count FROM dbo.[User] WHERE Email = @email AND password = HASHBYTES('MD5', @password);", function (err) { //Verify in DB
             if (err) {
                 res.send(500, null);
                 return;
@@ -95,7 +99,7 @@ function getAccessToken(req, res, next) {
                     return;
                 }
                 if (r[0].count == 1) {
-                    res.send(200, { access_token: jwt.encode(email, secret) });
+                    res.send(200, { access_token: jwt.encode(email, secret) }); //Generate access token
                 } else {
                     res.setHeader("WWW-Authenticate", 'Bearer realm="Users"');
                     res.send(401, { type: "InvalidEmailPassword", message: "Specified e-mail / password combination is not valid." });
@@ -111,49 +115,62 @@ function createContact(req, res, next) {
     var firstName = req.body.firstName;
     var lastName = req.body.lastName;
     var phone = req.body.phone;
-    if (!firstName || !lastName || !phone) {
+    if (!firstName || !lastName || !phone) { //Validation
         res.send(400, { type: "IncompleteData", message: "First name, last name or phone number missing." });
     } else {
-        var id = guid.create();
-        firebaseRef.set({ guid: id.toString(), firstName: firstName, lastName: lastName, phone: phone }, function (err) {
+        var pushed = firebaseRef.push({ firstName: firstName, lastName: lastName, phone: phone }, function (err, a1, a2) { //Save to FireBase (push() generates unique ID)
             if (err) {
                 res.send(500, null);
             } else {
-                res.send(201, { id: id.toString() });
+                res.send(201, { id: pushed.name() }); //Return unique ID to client - it may be useful for him
             }
         });
     }
     next();
 }
 
+//Helper function to delete uploaded files
+function _removeFiles(files) {
+    for (var i = 0; i < files.length ; i++) {
+        fs.unlink(files[i].path);
+    }
+}
+
 function uploadPhoto(req, res, next) {
     res.contentType = "json";
     var contactId = req.query.contactId;
-    if (!contactId) {
+    //Gather all files uploaded (well, we expect only one, but clients can be creative)
+    var files = new Array();
+    for (var i in req.files)
+        files.push(req.files[i]);
+    if (!contactId) { //Validation
         res.send(400, { type: "IncompleteData", message: "Contact id missing." });
+        _removeFiles(files);
     } else {
-        var files = new Array();
-        for (var i in req.files)
-            files.push(req.files[i]);
-        if (files.length < 1) {
+        if (files.length < 1) { //No file
             res.send(400, { type: "IncompleteData", message: "File not uploaded." });
-        } else if (files.lenght > 1) {
+        } else if (files.lenght > 1) { //More zhan one files
             res.send(400, { type: "InvalidData", message: "Too many files" });
-            for (var i = 0; i < files.length ; i++) { 
-                fs.unlink(files[i].path);
-            }
+            _removeFiles(files);
         } else {
-            blobSvc.createContainerIfNotExists('container', { publicAccessLevel: "blob" }, function (error, result, response) {
-                if (error) {
-                    res.send(500, null);
-                } else {
-                    blobSvc.createBlockBlobFromLocalFile("container", contactId, files[0].path, function (error, result, response) {
-                        fs.unlink(files[0].path);
-                        if (error)
+            firebaseRef.child(contactId).on("value", function (snapshot) { //Verify that contact exists in FireBase
+                if (snapshot.exists()) {
+                    blobSvc.createContainerIfNotExists('container', { publicAccessLevel: "blob" }, function (error, result, response) { //Ensure Azure BLOB storage container (name "container")
+                        if (error) {
                             res.send(500, null);
-                        else
-                            res.send(201, null);
+                        } else {
+                            blobSvc.createBlockBlobFromLocalFile("container", contactId, files[0].path, function (error, result, response) { //Save the image to Azure BLOB storage
+                                _removeFiles(files);
+                                if (error)
+                                    res.send(500, null);
+                                else
+                                    res.send(201, null);
+                            });
+                        }
                     });
+                } else {
+                    _removeFiles(files);
+                    res.send(404, { type: "NonexistentContact", message: "Contact id '" + contactId + "' does not exist" });
                 }
             });
         }
@@ -161,6 +178,7 @@ function uploadPhoto(req, res, next) {
     next();
 }
 
+//Web app config
 passport.use(new Bearer(
     function (token, done) {
         var email;
