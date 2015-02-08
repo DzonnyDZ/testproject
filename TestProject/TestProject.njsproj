@@ -30,6 +30,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="app.js" />
     <Compile Include="server.js" />
     <Content Include="create-database.sql" />
     <Content Include="package.json" />
