@@ -21,7 +21,8 @@ server.post('/contacts', passport.authenticate('bearer', { session: false }), ap
 server.post('/photos', passport.authenticate('bearer', { session: false }), app.uploadPhoto);
 server.get('/', app.hello);
 
-//Logging
-server.listen(80, function () {
+//Start
+var port = process.env.PORT || 8080;
+server.listen(port, function () {
     console.log('%s listening at %s', server.name, server.url);
 });
