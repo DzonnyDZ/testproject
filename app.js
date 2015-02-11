@@ -12,7 +12,7 @@
     
     var config = {
         //MS SQL server setup
-        server: 'vkyqkhf0b2.database.windows.net,1433', //Replace with server name (mssql npm package does not support named instances :-( )
+        server: 'vkyqkhf0b2.database.windows.net', //Replace with server name (mssql npm package does not support named instances :-( )
         database: 'strvtest', //Replace with database name
         user: 'xxx', //Replace with actual user name (this is not censored, I really use xxx :-) )
         password: 'aa1_U!§?:-)' //Replace with actual password (this is not censored, I really use xxx :-) )

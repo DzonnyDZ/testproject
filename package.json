@@ -1,11 +1,11 @@
 {
   "name": "TestProject",
-  "version": "0.0.0",
-  "description": "TestProject",
+  "version": "1.1.0",
+  "description": "Test project for STRV",
   "main": "server.js",
   "author": {
-    "name": "Honza",
-    "email": ""
+    "name": "�onny",
+    "email": "dzonny.dz@gmail.com"
   },
   "dependencies": {
     "azure-storage": "^0.4.2",
