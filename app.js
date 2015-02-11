@@ -10,13 +10,15 @@
     var firebaseRef = new firebase('https://radiant-heat-2598.firebaseio.com/'); //Path to firebase
     var blobSvc = azure.createBlobService('chorchojstorage', '+jvJAd+vYk/fPP7ivBZ3k2RpInTv//ANBrXOTFSt262kNrSK6dkBZ9Gj5UZUPO74ccmn//W3A0CyMSef9ToV6A=='); //Connection to Azure BLOB storage
     
+    
     var config = {
         //MS SQL server setup
+        driver: 'msnodesql',
         server: 'vkyqkhf0b2.database.windows.net', //Replace with server name (mssql npm package does not support named instances :-( )
         database: 'strvtest', //Replace with database name
         user: 'xxx', //Replace with actual user name (this is not censored, I really use xxx :-) )
-        password: 'aa1_U!§?:-)' //Replace with actual password (this is not censored, I really use xxx :-) )
-    //Integrated security is not supported by mssql npm package :-(
+        password: 'aa1_U!§?:-)' //Replace with actual password
+        //Integrated security is not supported by mssql npm package :-(
     };
     var secret = 'wfdecerutejhsdgffg8754*/*/*:-)'; //Used to generate access tokens
     
