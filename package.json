@@ -1,10 +1,10 @@
-﻿{
+{
   "name": "TestProject",
   "version": "1.1.0",
   "description": "Test project for STRV",
   "main": "server.js",
   "author": {
-    "name": "Đonny",
+    "name": "Dzonny",
     "email": "dzonny.dz@gmail.com"
   },
   "dependencies": {
