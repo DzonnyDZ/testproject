@@ -12,10 +12,10 @@
     
     var config = {
         //MS SQL server setup
-        server: 'localhost', //Replace with server name (mssql npm package does not support named instances :-( )
-        database: 'STRV_test', //Replace with database name
+        server: 'vkyqkhf0b2.database.windows.net,1433', //Replace with server name (mssql npm package does not support named instances :-( )
+        database: 'strvtest', //Replace with database name
         user: 'xxx', //Replace with actual user name (this is not censored, I really use xxx :-) )
-        password: 'xxx' //Replace with actual password (this is not censored, I really use xxx :-) )
+        password: 'aa1_U!§?:-)' //Replace with actual password (this is not censored, I really use xxx :-) )
     //Integrated security is not supported by mssql npm package :-(
     };
     var secret = 'wfdecerutejhsdgffg8754*/*/*:-)'; //Used to generate access tokens
@@ -262,4 +262,15 @@
         }
         return done(null, { email: email }, { scope: 'all' });
     };
+
+    /**
+     * Hello world
+     * @param {module:restify/Request} req HTTP request
+     * @param {module:restify/Response} res HTTP response
+     * @param {Function} next Method called to run next handler in chain
+    */
+    this.hello = function hello(req, res, next){
+        res.contentType = 'text/plain';
+        res.send(200, 'Hello world');
+    }
 };

@@ -19,6 +19,7 @@ server.post('/accounts', app.createAccount);
 server.get('/access_token', app.getAccessToken);
 server.post('/contacts', passport.authenticate('bearer', { session: false }), app.createContact);
 server.post('/photos', passport.authenticate('bearer', { session: false }), app.uploadPhoto);
+server.get('/', app.hello);
 
 //Logging
 server.listen(8080, function () {
